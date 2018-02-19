@@ -1,0 +1,5 @@
+# Trains
+Thread synchronization, mutex, semaphores and cond var
+
+Construct a simulator of an automated control system for the railway track (i.e., to emulate the scheduling of multiple threads sharing a common resource in a real operating system).
+There are two stations (for high and low priority trains) on each side of the main track. At each station, one or more trains are loaded with commodities. Each train in the simulation commences its loading process at a common start time 0 of the simulation program. Some trains take more time to load, some less. After a train is loaded, it patiently awaits permission to cross the main track, subject to the requirements specified in Section 2.2. Most importantly, only one train can be on the main track at any given time. After a train finishes crossing, it magically disappears. You will use threads to simulate the trains approaching the main track from two different directions, and your program will schedule between them to meet the requirements in Section 2.2. 

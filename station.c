@@ -60,7 +60,7 @@ void addNode (int train_id, int train_pr, char train_b, double train_ld_time){
 	new_node->b = train_b;
 	new_node->ld_time = train_ld_time;
 
-	printf("\naddNode - TrainID:%d - bound:%c|pr:%d \n", train_id, train_b, train_pr);
+	// printf("\naddNode - TrainID:%d - bound:%c|pr:%d \n", train_id, train_b, train_pr);
 
 	//Station has waiting trains
 	if ((train_b == 'e') && (ste_ctr > 0)) {
@@ -100,9 +100,9 @@ void addNode (int train_id, int train_pr, char train_b, double train_ld_time){
 
 	if(flag){
 		for ( ; temp->next != NULL ; temp = temp->next){
-			printf("Traversing station train:%d - bound:%c|pr:%d \n", temp->id, temp->b, temp->pr);
+			// printf("Traversing station train:%d - bound:%c|pr:%d \n", temp->id, temp->b, temp->pr);
 		}
-		printf("Traversing station train:%d - bound:%c|pr:%d \n", temp->id, temp->b, temp->pr);
+		// printf("Traversing station train:%d - bound:%c|pr:%d \n", temp->id, temp->b, temp->pr);
 
 		temp->next = new_node;
 		new_node->next = NULL;
@@ -161,14 +161,14 @@ int printStation(char b){
 }
 int removeHead(char b){
 	assert(b == 'e' || b == 'w' || b == 'E' || b =='W');
-	int x = 0;
+	// int x = 0;
 	
 	if (b == 'e') {
 		if (root_e == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b); return 1;}
 		temp = root_e;
 		root_e = temp->next;
 		ste_ctr--;
-		x = ste_ctr;
+		// x = ste_ctr;
 
 	}
 	else if (b == 'w'){
@@ -176,24 +176,24 @@ int removeHead(char b){
 		temp = root_w;
 		root_w = temp->next;
 		stw_ctr--;
-		x = stw_ctr;
+		// x = stw_ctr;
 	}
 	else if (b == 'E'){
 		if (root_EA == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b); return 1;}
 		temp = root_EA;
 		root_EA = temp->next;
 		stEA_ctr--;
-		x = stEA_ctr;
+		// x = stEA_ctr;
 	}
 	else if (b == 'W'){
 		if (root_WE == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b); return 1;}
 		temp = root_WE;
 		root_WE = temp->next;
 		stWE_ctr--;
-		x = stWE_ctr;
+		// x = stWE_ctr;
 	}
 
-	printf("Removed - TrainID:%d - bound:%c|pr:%d - St,counter:%d\n", temp->id, temp->b, temp->pr, x);
+	// printf("Removed - TrainID:%d - bound:%c|pr:%d - St,counter:%d\n", temp->id, temp->b, temp->pr, x);
 	free(temp);
 	return 0;
 

@@ -46,7 +46,7 @@ Train *addTrain (char b, int pr, int ld, int x, char *bound){
 	new_train->x = x;
 	new_train->b = b;
 	strncpy(new_train->bound,bound,5);	
-	new_train->s = 0; 
+	new_train->s = -1; 
 	new_train->next = NULL;
 
 
@@ -91,9 +91,11 @@ Train *addTrain (char b, int pr, int ld, int x, char *bound){
 int getTime(struct timeval start, struct timeval stop, char *buf){
 	double hours, t, minutes, seconds, accum;
 	memset( buf, '\0', sizeof(char)*TS_LEN );
-	double waka1 = (double)(start.tv_usec) / 1000000 + (double)(start.tv_sec); 
-	double waka2 = (double)(stop.tv_usec) / 1000000 + (double)(stop.tv_sec); 
-	printf("getTime - start:%f | stop:%f\n", waka1, waka2);
+
+
+	// double waka1 = (double)(start.tv_usec) / 1000000 + (double)(start.tv_sec); 
+	// double waka2 = (double)(stop.tv_usec) / 1000000 + (double)(stop.tv_sec); 
+	// // printf("getTime - start:%f | stop:%f\n", waka1, waka2);
 	
 	accum = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
 
@@ -108,21 +110,27 @@ int getTime(struct timeval start, struct timeval stop, char *buf){
 	return x;
 }
 
-void* runner(void *args){
+void* runner(void *train_arg){
 	// struct timeval tstart_load, tfinish_load, tstart_x, tfinish_x, tdiff;  
 	// struct timespec start_ld, stop_ld, start_x, stop_x;
 	// clock_t begin_ld, end_ld, begin_x, end_x;
 	char buf[TS_LEN];
 	
-	Train *train = (struct Train *)args;
+	struct Train *train = (Train *)train_arg;
+	free(train_arg);
+
+	printf("Runner - Train | s:%d | id:%d | b:%c | pr:%d\n", train->s, train->id, train->b, train->pr);
+	// printf("RUNNER - address of root:%p\n", (void *) &root);
+
+
 	int loading = train->ld * TENTH_SEC;
 	int xing = train->x * TENTH_SEC;
-
 	// Waiting for dispatcher global var signal for all trains to start loading
 	while (awaiting);
 
 	//LOADING
 	struct timeval start_ld, stop_ld, start_x, stop_x;
+	train->s = 0; // loading
 	gettimeofday(&start_ld, NULL);
 	usleep(loading);
 	gettimeofday(&stop_ld, NULL);
@@ -132,11 +140,12 @@ void* runner(void *args){
 	printf("%s Train %d is READY to go %s\n", buf, train->id, train->bound);
 	train->ld_time = (double)(stop_ld.tv_usec) / 1000000 + (double)(stop_ld.tv_sec); 
 	train->s = 1; //ready
+
 	pthread_mutex_lock(&queue_mutex);
 	addNode(train->id, train->pr, train->b, train->ld_time);
 	rdy_ctr++;
 	pthread_mutex_unlock(&queue_mutex);
-	printf("\n");
+	
 	// TODO: TIMESTAMP Load time
 
 
@@ -207,6 +216,8 @@ void *dispatcher(void* args){
 	pthread_t tid[train_ctr];
 	pthread_attr_t attr;
 	int x, total_dispatched = 0;
+	struct Train *temp;
+
 	// Initialize mutex and condition variable objects
 	pthread_mutex_init(&queue_mutex, NULL);
 	pthread_mutex_init(&main_track_mutex, NULL);
@@ -217,8 +228,13 @@ void *dispatcher(void* args){
 
 
 	// Initialize train threads
+	// printf("DISP - address of root:%p\n", (void *) &root);
+
 	for (x = 0, temp = root ; x < train_ctr ; x++, temp = temp->next){
-		if (pthread_create(&tid[x], &attr, runner, temp) != 0){
+		Train *train_arg = malloc(sizeof(Train));
+		train_arg = temp;
+
+		if (pthread_create(&tid[x], &attr, runner, (void *) train_arg) != 0){
 			fprintf(stderr,"ERROR - Cannot create TRAIN thread tid:%d\n", x);
 		}
 	}
@@ -226,13 +242,20 @@ void *dispatcher(void* args){
 	usleep(500000);
 	awaiting = 0; // Signal all trains to start loading
 
+
+
+
+	
+	// printf("DISP - 1. Temp | s:%d | ID:%d | b:%c \n", temp->s, temp->id, temp->b);
+	
+
+
 	while (total_dispatched < train_ctr){
-		printf("DISP - LOOP, total_dispatched:%d\n", total_dispatched);
+		// printf("DISP - LOOP, total_dispatched:%d\n", total_dispatched);
 		while (rdy_ctr == 0);
 		if (stEA_ctr > 0 || stWE_ctr > 0){ // High PR 
 			double E1, W1;
 			int total_waiting=0 ,dispatch_id;
-			char dispatch_b;
 			printf("\nDISP - High priority train is ready to depart - EAST:%d, WEST:%d\n", stEA_ctr, stWE_ctr);
 			if (stEA_ctr > 0 ){
 				E1 = getLoadTime('E');
@@ -248,43 +271,40 @@ void *dispatcher(void* args){
 				if  (E1 < W1) {
 					printf("DISP - >2 Waiting - EAST is smaller, must go first - %f | total_waiting:%d\n",E1, total_waiting);
 					dispatch_id = getHeadID('E');
-					dispatch_b = 'E';
+					// dispatch_b = 'E';
 				}else{
 					printf("DISP - >2 Waiting - WEST is smaller, must go first - %f | total_waiting:%d\n",W1, total_waiting);
 					dispatch_id = getHeadID('W');
-					dispatch_b = 'W';
+					// dispatch_b = 'W';
 				}
 			}else {
 				if (E1 != 0){
 					printf("DISP - Single - EAST is smaller, must go first - %f | total_waiting:%d\n",E1, total_waiting);
 					dispatch_id = getHeadID('E');
-					dispatch_b = 'E';
+					// dispatch_b = 'E';
 				}else{
 					printf("DISP - Single - WEST is smaller, must go first - %f | total_waiting:%d\n",W1, total_waiting);
 					dispatch_id = getHeadID('W');
-					dispatch_b = 'W';
+					// dispatch_b = 'W';
 				}
 			}
 			for(temp = root; temp->id != dispatch_id ; temp = temp->next );
-			printf("DISP - Found Train - Id=%d - s:%d, b:%c-%s, p:%d, ld-x:%d-%d, ld_time:%f\n", temp->id, temp->s, temp->b, temp->bound, temp->pr, temp->ld, temp->x, temp->ld_time);
+			temp->s = 2; // Granted
+			printf("DISP - TO DISPATCH | ID=%d | S:%d | b:%c-%s | p:%d | ld-x:%d-%d | ld_time:%f\n", temp->id, temp->s, temp->b, temp->bound, temp->pr, temp->ld, temp->x, temp->ld_time);
 			
-			temp->s = 2;
-			printf ("DISP - 1 temp train status (SHOULD BE 2):%d\n", temp->s);
 			pthread_mutex_lock(&main_track_mutex);
 			pthread_cond_broadcast(&green_light_cv);
 			pthread_mutex_unlock(&main_track_mutex);
 			
 			pthread_mutex_lock(&queue_mutex);
 			rdy_ctr--;
-			// removeHead(dispatch_b);
-			printf ("DISP - 2 temp train status:%d\n", temp->s);
+			removeHead(temp->b);
 			pthread_mutex_unlock(&queue_mutex);
 			while (temp->s != 4){
 
 				// printf ("DISP - train dispatched status:%d\n", temp->s);
 			}
-			printf ("DISP - 2 temp train status:%d\n", temp->s);
-			printf("DISP - Train dispatched gone\n");
+			printf("DISP - Train dispatched GONE | ID:%d | Status(should be 4):%d  \n\n", temp->id, temp->s);
 		}
 
 
@@ -293,10 +313,10 @@ void *dispatcher(void* args){
 
 
 		total_dispatched++;
-		printf("DISP - total_dispatched:%d |train_ctr:%d\n", total_dispatched, train_ctr);
+		// printf("DISP - total_dispatched:%d |train_ctr:%d\n", total_dispatched, train_ctr);
 	}
 
-	printf ("DISP - here\n");
+	printf ("DISP - Joining threads\n");
 
 
 /*

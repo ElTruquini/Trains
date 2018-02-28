@@ -1,0 +1,252 @@
+#include "station.h"
+#include <sys/time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+
+int ste_ctr = 0, stEA_ctr = 0, stw_ctr = 0, stWE_ctr = 0;
+struct Node *root_w = NULL, *root_WE = NULL, *root_e = NULL, *root_EA = NULL, *temp = NULL;
+	
+void hello(void){
+	printf("hello from station\n");
+
+}
+int getHeadID(char b){
+	assert(b == 'e' || b == 'w' || b == 'E' || b =='W');
+	switch (b){
+		case 'e':
+			assert(root_e != NULL);
+			return root_e->id;
+		case 'w':
+			assert(root_w != NULL);
+			return root_w->id;
+		case 'E':
+			assert(root_EA != NULL);
+			return root_EA->id;
+		case 'W':
+			assert(root_WE != NULL);
+			return root_WE->id;
+	}
+	return 0;
+}
+
+
+double getLoadTime(char b){
+	assert(b == 'e' || b == 'w' || b == 'E' || b =='W');
+	switch (b){
+		case 'e':
+			return root_e->ld_time;
+		case 'w':
+			return root_w->ld_time;
+		case 'E':
+			return root_EA->ld_time;
+		case 'W':
+			return root_WE->ld_time;
+	}
+	return 0;
+}
+
+void addNode (int train_id, int train_pr, char train_b, double train_ld_time){
+	assert(train_b == 'e' || train_b == 'w' || train_b == 'E' || train_b =='W');
+
+	Node *new_node = (Node*)malloc(sizeof(Node));
+	memset(new_node, 0, sizeof(Node));
+	Node *temp;
+	int flag = 0;
+
+	new_node->id = train_id;
+	new_node->pr = train_pr;
+	new_node->b = train_b;
+	new_node->ld_time = train_ld_time;
+
+	printf("\naddNode - TrainID:%d - bound:%c|pr:%d \n", train_id, train_b, train_pr);
+
+	//Station has waiting trains
+	if ((train_b == 'e') && (ste_ctr > 0)) {
+		temp = root_e;
+		ste_ctr++;
+		flag =1;
+	}else if ((train_b == 'w') && (stw_ctr > 0)){
+		temp = root_w;
+		stw_ctr++;
+		flag =1;
+	}else if ((train_b == 'E') && (stEA_ctr > 0)){
+		temp = root_EA;
+		stEA_ctr++;
+		flag =1;
+	}else if ((train_b == 'W') && (stWE_ctr > 0)){
+		temp = root_WE;
+		stWE_ctr++;
+		flag =1;
+	}
+
+	//Station empty
+	if ((train_b == 'e') && (ste_ctr == 0)) {
+		root_e = new_node;
+		ste_ctr++;
+	}else if ((train_b == 'w') && (stw_ctr == 0)){
+		(root_w = new_node);
+		stw_ctr++;
+
+	}else if ((train_b == 'E') && (stEA_ctr == 0)){
+		root_EA = new_node;
+		stEA_ctr++;
+
+	}else if ((train_b == 'W') && (stWE_ctr == 0)){
+		root_WE = new_node;
+		stWE_ctr++;
+	}
+
+	if(flag){
+		for ( ; temp->next != NULL ; temp = temp->next){
+			printf("Traversing station train:%d - bound:%c|pr:%d \n", temp->id, temp->b, temp->pr);
+		}
+		printf("Traversing station train:%d - bound:%c|pr:%d \n", temp->id, temp->b, temp->pr);
+
+		temp->next = new_node;
+		new_node->next = NULL;
+	}
+}
+
+int waitingLine(char b){
+	assert(b == 'e' || b == 'w' || b == 'E' || b =='W');
+	switch (b){
+		case 'e':
+			return ste_ctr;
+		case 'w':
+			return stw_ctr;
+		case 'E':
+			return stEA_ctr;
+		case 'W':
+			return stWE_ctr;
+	}
+	return 0;
+}
+
+int printStation(char b){
+	assert(b == 'e' || b == 'w' || b == 'E' || b =='W');
+
+	int x = 0;
+	printf("===========Printing Statio: %c============\n",b);
+
+
+	switch (b){
+		case 'e':
+			temp = root_e;
+			x = ste_ctr;
+			break;
+		case 'w':
+			temp = root_w;
+			x = stw_ctr;
+			break;
+		case 'E':
+			temp = root_EA;
+			x = stEA_ctr;
+			break;
+		case 'W':
+			temp = root_WE;
+			x = stWE_ctr;
+			break;
+	}
+
+	if (temp == NULL){fprintf(stderr,"ERROR - Station is empty, could not print list\n"); return 1;}
+
+	printf("Number of trains waiting:%d\n", x);
+	for ( ; temp != NULL ; temp = temp->next){
+		printf("TrainID:%d - bound:%c|pr:%d \n", temp->id, temp->b, temp->pr);
+	}
+	printf("===========End of Station============\n");
+	return 0;
+}
+int removeHead(char b){
+	assert(b == 'e' || b == 'w' || b == 'E' || b =='W');
+	int x = 0;
+	
+	if (b == 'e') {
+		if (root_e == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b); return 1;}
+		temp = root_e;
+		root_e = temp->next;
+		ste_ctr--;
+		x = ste_ctr;
+
+	}
+	else if (b == 'w'){
+		if (root_w == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b); return 1;}
+		temp = root_w;
+		root_w = temp->next;
+		stw_ctr--;
+		x = stw_ctr;
+	}
+	else if (b == 'E'){
+		if (root_EA == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b); return 1;}
+		temp = root_EA;
+		root_EA = temp->next;
+		stEA_ctr--;
+		x = stEA_ctr;
+	}
+	else if (b == 'W'){
+		if (root_WE == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b); return 1;}
+		temp = root_WE;
+		root_WE = temp->next;
+		stWE_ctr--;
+		x = stWE_ctr;
+	}
+
+	printf("Removed - TrainID:%d - bound:%c|pr:%d - St,counter:%d\n", temp->id, temp->b, temp->pr, x);
+	free(temp);
+	return 0;
+
+
+}
+
+// int main (int argc, char *argv[]){
+	// // high priority, same station
+	// addNode(0, 1, 'e');
+	// addNode(1, 1, 'e');
+	// addNode(2, 1, 'e');
+	// addNode(3, 1, 'e');
+	// addNode(4, 1, 'e');
+	// addNode(5, 1, 'e');
+	// printStation('e');
+	
+	// // high priority, same station
+	// addNode(0, 1, 'w');
+	// addNode(1, 1, 'w');
+	// addNode(2, 1, 'w');
+	// addNode(3, 1, 'w');
+	// addNode(4, 1, 'w');
+	// addNode(7, 1, 'w');
+	// printStation('w');
+
+	// Remove head
+	// addNode(0, 1, 'w');
+	// addNode(1, 1, 'w');
+	// removeHead('w');
+	// addNode(2, 1, 'w');
+	// printStation('w');
+
+	// Remove head
+// 	addNode(0, 1, 'w');
+// 	addNode(1, 1, 'W');
+// 	removeHead('w');
+// 	addNode(2, 1, 'w');
+// 	addNode(3, 1, 'e');
+// 	addNode(4, 1, 'e');
+// 	addNode(5, 1, 'E');
+// 	addNode(6, 1, 'E');
+
+// 	removeHead('E');
+// 	removeHead('E');
+// 	printf("Waiting in line e:%d\n", waitingLine(0));
+// 	printf("Waiting in line w:%d\n", waitingLine(1));
+// 	printf("Waiting in line EA:%d\n", waitingLine(2));
+// 	printf("Waiting in line WE:%d\n", waitingLine(3));
+// 	printStation('w');
+// 	printStation('W');
+// 	printStation('e');
+// 	printStation('E');
+
+
+// }
+

@@ -36,12 +36,16 @@ double getLoadTime(char b){
 	assert(b == 'e' || b == 'w' || b == 'E' || b =='W');
 	switch (b){
 		case 'e':
+			assert(root_e != NULL);
 			return root_e->ld_time;
 		case 'w':
+			assert(root_w != NULL);
 			return root_w->ld_time;
 		case 'E':
+			assert(root_EA != NULL);
 			return root_EA->ld_time;
 		case 'W':
+			assert(root_WE != NULL);
 			return root_WE->ld_time;
 	}
 	return 0;

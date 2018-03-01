@@ -34,7 +34,9 @@ pthread_cond_t green_light_cv;
 struct Train *root, *temp;
 int train_ctr = 0; // number of trains
 int rdy_ctr = 0;
-int awaiting = 1; //global variable used for thread signaling to start loading
+int awaiting_ld = 1; //global variable used to signal runner start loading
+int train_on_track = 0; //global variable used to signal dispatcher,
+	
 
 Train *addTrain (char b, int pr, int ld, int x, char *bound){
 	Train *new_train = (Train*)malloc(sizeof(Train));
@@ -114,13 +116,13 @@ void* runner(void *train_arg){
 	char buf[TS_LEN];
 	struct Train *train = (Train *)train_arg;
 	struct timeval start_ld, stop_ld, start_x, stop_x;
-	printf("Runner - NEW THREAD Train | id:%d | s:%d | b:%c | pr:%d \n", train->id, train->s, train->b, train->pr );
+	// printf("Runner - NEW THREAD Train | id:%d | s:%d | b:%c | pr:%d \n", train->id, train->s, train->b, train->pr );
 
 
 	int loading = train->ld * TENTH_SEC;
 	int xing = train->x * TENTH_SEC;
 	// Waiting for dispatcher global var signal for all trains to start loading
-	while (awaiting);
+	while (awaiting_ld);
 	
 	// LOADING
 	train->s = 0; // loading
@@ -143,15 +145,16 @@ void* runner(void *train_arg){
 	//CROSSING main track
 	pthread_mutex_lock(&main_track_mutex);
 	while(train->s != 2){
-		printf("Train:%d is going to sleep ZzZzZZZZZzzzzZz\n", train->id);
+		// printf("Train:%d is going to sleep ZzZzZZZZZzzzzZz\n", train->id);
 		pthread_cond_wait(&green_light_cv, &main_track_mutex);
 	}
-	printf("Train:%d is AWAKE\n", train->id);
+	// printf("Train:%d is AWAKE\n", train->id);
 	gettimeofday(&start_x, NULL);
 	if (getTime(start_ld, start_x, buf) <= 0){
 		fprintf(stderr,"ERROR - Converting clock format (2)\n");
 	}
 	train->s = 3; //xing
+	train_on_track = 1; 
 	printf("%s Train:%d is ON the main track going %s\n", buf, train->id, train->bound);
 	usleep(xing);
 	gettimeofday(&stop_x, NULL);
@@ -162,8 +165,8 @@ void* runner(void *train_arg){
  	// TODO: Timestamp finish xing
 	pthread_mutex_unlock(&main_track_mutex);
 	train->s = 4; //gone
-
-	printf("Exit Train:%d thread with status:%d \n", train->id, train->s);
+	train_on_track = 0; 
+	printf("RUNN - Exit Train:%d thread with status:%d \n", train->id, train->s);
 
 
 
@@ -183,7 +186,7 @@ void* runner(void *train_arg){
 void *dispatcher(void* args){
 	pthread_t tid[train_ctr];
 	pthread_attr_t attr;
-	int x, total_dispatched = 0;
+	int total_dispatched = 0;
 	struct Train *temp;
 
 	// Initialize mutex and condition variable objects
@@ -198,34 +201,151 @@ void *dispatcher(void* args){
 	// Initialize train threads
 	// printf("DISP - address of root:%p\n", (void *) &root);
 
+  	int x;
 	for (x = 0, temp = root ; x < train_ctr ; x++, temp = temp->next){
-		printf("DISP - Creating thread #%d | id:%d | s:%d | b:%c | pr:%d |temp_add:%p |root_add:%p\n",
-					 x, temp->id, temp->s, temp->b, temp->pr, temp, root);
-		Train *train_arg = malloc(sizeof(Train));
-		train_arg = temp;
+		// printf("DISP - Creating thread #%d | id:%d | s:%d | b:%c | pr:%d |temp_add:%p |root_add:%p\n",
+					 // x, temp->id, temp->s, temp->b, temp->pr, temp, root);
 		if (pthread_create(&tid[x], &attr, runner, (void *) temp) != 0){
 			fprintf(stderr,"ERROR - Cannot create TRAIN thread tid:%d\n", x);
 		}
 	}
 
-	usleep(100000);
-	awaiting = 0; // Signal all trains to start loading
-	usleep(3000000);
-	temp = root;
-	temp->s = 2;
-	pthread_mutex_lock(&main_track_mutex);
-	pthread_cond_broadcast(&green_light_cv);
-	pthread_mutex_unlock(&main_track_mutex);
-	usleep(3000000);
-	temp = root->next;
-	temp->s = 2;
-	pthread_mutex_lock(&main_track_mutex);
-	pthread_cond_broadcast(&green_light_cv);
-	pthread_mutex_unlock(&main_track_mutex);
-	// usleep(3000000);
-	// root->next->s =2;
+	usleep(500000);
+	awaiting_ld = 0; // Signal ready to load
 
-	// return EXIT_SUCCESS;
+	usleep(3000000); //***************************************!!!!!!!!!! remove this sleep, used for testing
+
+	char last_b_disp = 'n';
+	while (total_dispatched < train_ctr){
+		Train *opt_W_t, *opt_E_t, *to_disp_train;
+		int to_disp_id;
+		while (train_on_track); //waiting for train to leave main track befores dispatches next train
+		// printf ("DISP - Train off main track, Anything ready?\n");
+		if (rdy_ctr > 0){
+			printf ("DISP - Train is waiting |rdy_ctr:%d | EA_ctr:%d | WE_ctr:%d | e_ctr:%d | w_ctr:%d\n",rdy_ctr, stEA_ctr, stWE_ctr,ste_ctr, stw_ctr);
+			if (stEA_ctr > 0 || stWE_ctr > 0){ // High train waiting 
+				printf ("DISP - Atleast one high waiting |stEA_ctr:%d | stWE_ctr:%d\n", stEA_ctr, stWE_ctr);
+				//More than 1 High waiting
+				if ((stEA_ctr >= 1 && stWE_ctr >= 1) || stEA_ctr >= 2 ||  stWE_ctr >= 2 ){ 
+					printf ("DISP - More than one high waiting |stEA_ctr:%d | stWE_ctr:%d\n", stEA_ctr, stWE_ctr);
+
+					// 2+ High, same direction - dispatch head of non empty queue
+					if ((stEA_ctr > 1 && stWE_ctr == 0) || (stEA_ctr == 0 && stWE_ctr > 1)){
+						printf ("DISP - More than one high - Same direction |stEA_ctr:%d | stWE_ctr:%d\n", stEA_ctr, stWE_ctr);
+						if (stEA_ctr > 1){
+							to_disp_id = getHeadID('E'); 
+							for(to_disp_train = root ; to_disp_train->id != to_disp_id ; to_disp_train = to_disp_train->next);
+							// printf("DISP - to_disp_train | id:%d | b:%c | pr:%d\n", to_disp_train->id, to_disp_train->b, to_disp_train->pr);
+						} else{
+							to_disp_id = getHeadID('W'); 
+							for(to_disp_train = root ; to_disp_train->id != to_disp_id ; to_disp_train = to_disp_train->next);
+						}
+
+					// 2+ High, different direction
+					}else{
+						printf ("DISP - More than one high - Different direction |stEA_ctr:%d | stWE_ctr:%d\n", stEA_ctr, stWE_ctr);
+						int E = getHeadID('E'); 
+						int W = getHeadID('W'); 
+						for(opt_W_t = root ; opt_W_t->id != W ; opt_W_t = opt_W_t->next);
+						for(opt_E_t = root ; opt_E_t->id != E ; opt_E_t = opt_E_t->next);
+						// Dispatch by loading times
+						if (opt_W_t->ld_time < opt_E_t->ld_time){
+							printf ("DISP - Ld_time for W is lower | ***opt_W_t->ld_time:%f | opt_E_t->ld_time:%f\n", opt_W_t->ld_time, opt_E_t->ld_time);
+							to_disp_train = opt_W_t;
+						} else if (opt_W_t->ld_time > opt_E_t->ld_time){
+							printf ("DISP - Ld_time for E is lower |opt_W_t->ld_time:%f | ***opt_E_t->ld_time:%f\n", opt_W_t->ld_time, opt_E_t->ld_time);
+							to_disp_train = opt_E_t;
+						//Dispatch by (min)id
+						}else{ 	
+							printf ("DISP - Dispatching by lower id |opt_W_t->id:%d | opt_E_t->id:%d\n", opt_W_t->id, opt_E_t->id);
+							to_disp_train = (opt_W_t->id < opt_E_t->id) ? opt_W_t : opt_E_t;
+						}
+					}
+				// Single High pr train waiting
+				}else{
+					printf("DISP - Single high train | rdy_ctr:%d |stEA_ctr:%d | stWE_ctr:%d\n", rdy_ctr, stEA_ctr, stWE_ctr);
+					if (stEA_ctr == 1){
+						to_disp_id = getHeadID('E'); 
+						for(to_disp_train = root ; to_disp_train->id != to_disp_id ; to_disp_train = to_disp_train->next);
+					} else{
+						to_disp_id = getHeadID('W'); 
+						for(to_disp_train = root ; to_disp_train->id != to_disp_id ; to_disp_train = to_disp_train->next);
+					}
+				}
+
+			// Low pr waiting (no high) waiting
+			}else { // Low train waiting
+				printf ("DISP - LOW pr waiting |ste_ctr:%d | stw_ctr:%d\n", ste_ctr, stw_ctr);
+
+
+			}
+
+			printf("DISP - DISPATCHING | id:%d | b:%c | pr:%d\n\n", to_disp_train->id, to_disp_train->b, to_disp_train->pr);
+
+			//Signal Granted train to dispatch
+			pthread_mutex_lock(&main_track_mutex);
+			to_disp_train->s = 2; // Granted
+			pthread_cond_broadcast(&green_light_cv);
+			pthread_mutex_unlock(&main_track_mutex);
+			//Removing train from station
+			pthread_mutex_lock(&queue_mutex);
+			rdy_ctr--;
+			removeHead(to_disp_train->b);
+			pthread_mutex_unlock(&queue_mutex);
+
+			while (to_disp_train->s != 4);
+
+
+		}
+		total_dispatched++;
+		// total_dispatched = train_ctr; //**************************change this to total_dispatched++
+	}	
+
+
+	// // Get candidate trains  op1 and opt2
+	// int diff_direction = 0;
+	// if (stEA_ctr >= 1){ 
+	// 	int opt_E_id = getHeadID('E'); 
+	// 	for(opt1 = root ; opt1->id != opt_E_id ; opt1 = opt1->next);
+	// 	printf("DISP - Option 1 to disp | id:%d | b:%c | pr:%d\n", opt1->id, opt1->b, opt1->pr);
+	// 	diff_direction++;
+	// }
+	// if (stEA_ctr >= 1){ 
+	// 	int opt_W_id = getHeadID('W'); 
+	// 	for(opt2 = root ; opt2->id != opt_W_id ; opt2 = opt2->next);
+	// 	printf("DISP - Option 2 to disp | id:%d | b:%c | pr:%d\n", opt2->id, opt2->b, opt2->pr);
+	// 	diff_direction++;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	// usleep(100000);
+	// awaiting_ld = 0; // Signal all trains to start loading
+	// usleep(3000000);
+	// temp = root;
+	// temp->s = 2;
+	// pthread_mutex_lock(&main_track_mutex);
+	// pthread_cond_broadcast(&green_light_cv);
+	// pthread_mutex_unlock(&main_track_mutex);
+	// usleep(3000000);
+	// temp = root->next;
+	// temp->s = 2;
+	// pthread_mutex_lock(&main_track_mutex);
+	// pthread_cond_broadcast(&green_light_cv);
+	// pthread_mutex_unlock(&main_track_mutex);
+	// // usleep(3000000);
+	// // root->next->s =2;
+	// // return EXIT_SUCCESS;
 
 
 /*	
@@ -237,7 +357,7 @@ void *dispatcher(void* args){
 		if (stEA_ctr > 0 || stWE_ctr > 0){ // High PR 
 			double E1, W1;
 			int total_waiting=0 ,dispatch_id;
-			printf("\nDISP - High priority train is ready to depart - EAST:%d, WEST:%d\n", stEA_ctr, stWE_ctr);
+			printf("\nDISP - High priority train is ready to depart - EASTq:%d, WESTq:%d\n", stEA_ctr, stWE_ctr);
 			if (stEA_ctr > 0 ){
 				E1 = getLoadTime('E');
 				// printf("EAST waiting Ld_time:%f\n", E1);
@@ -311,12 +431,6 @@ void *dispatcher(void* args){
 	printStation('W');
 	printStation('e');
 	printStation('w');
-	printf("\n==========Dispatcher RAW===========\n");
-	for(temp = root; temp != NULL ; temp = temp->next ){
-		printf("Id=%d - s:%d, b:%c-%s, p:%d, ld-x:%d-%d, ld_time:%f\n", temp->id, temp->s, temp->b, temp->bound, temp->pr, temp->ld, temp->x, temp->ld_time);
-	}
-	printf("==================================\n");
-
 
 
 
@@ -378,7 +492,7 @@ int main (int argc, char *argv[]){
 
 	printf("\nMAIN: All threads finalized\n");
 
-	printf("==========FINAL RAW===========\n");
+	printf("==========FINAL DATA==========\n");
 	for(temp = root; temp != NULL ; temp = temp->next ){
 		printf("Id=%d - s:%d, b:%c-%s, p:%d, ld-x:%d-%d, ld_time:%f\n", temp->id, temp->s, temp->b, temp->bound, temp->pr, temp->ld, temp->x, temp->ld_time);
 	}

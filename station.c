@@ -60,7 +60,7 @@ void addNode (int train_id, int train_pr, char train_b, double train_ld_time){
 	new_node->b = train_b;
 	new_node->ld_time = train_ld_time;
 
-	// printf("\naddNode - TrainID:%d - bound:%c|pr:%d \n", train_id, train_b, train_pr);
+	printf("addNode - TrainID:%d - bound:%c|pr:%d \n", train_id, train_b, train_pr);
 
 	//Station has waiting trains
 	if ((train_b == 'e') && (ste_ctr > 0)) {
@@ -128,7 +128,7 @@ int printStation(char b){
 	assert(b == 'e' || b == 'w' || b == 'E' || b =='W');
 
 	int x = 0;
-	printf("===========Printing Statio: %c============\n",b);
+	printf("*********** %c - Printing Station***********\n",b);
 
 
 	switch (b){
@@ -156,7 +156,7 @@ int printStation(char b){
 	for ( ; temp != NULL ; temp = temp->next){
 		printf("TrainID:%d - bound:%c|pr:%d \n", temp->id, temp->b, temp->pr);
 	}
-	printf("===========End of Station============\n");
+	printf("*********************************************\n");
 	return 0;
 }
 int removeHead(char b){
@@ -164,7 +164,7 @@ int removeHead(char b){
 	// int x = 0;
 	
 	if (b == 'e') {
-		if (root_e == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b); return 1;}
+		if (root_e == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b);}
 		temp = root_e;
 		root_e = temp->next;
 		ste_ctr--;

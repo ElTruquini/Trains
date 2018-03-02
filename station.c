@@ -13,7 +13,7 @@ int removeTrain(char b, int id){
 	// int x = 0;
 	switch (b){
 		case 'e':
-			if (ste_ctr == 1){
+			if (ste_ctr == 1 && root_e->id == id){
 				removeHead('e');
 				return 0;
 			}else{
@@ -22,7 +22,7 @@ int removeTrain(char b, int id){
 			}
 			break;
 		case 'w':
-			if (stw_ctr == 1){
+			if (stw_ctr == 1 && root_w->id == id){
 				removeHead('e');
 				return 0;
 			}else{
@@ -31,7 +31,7 @@ int removeTrain(char b, int id){
 			}
 			break;
 		case 'E':
-			if (stEA_ctr == 1){
+			if (stEA_ctr == 1 && root_EA->id == id){
 				removeHead('e');
 				return 0;
 			}else{
@@ -40,7 +40,7 @@ int removeTrain(char b, int id){
 			}
 			break;
 		case 'W':
-			if (stWE_ctr == 1){
+			if (stWE_ctr == 1 && root_WE->id == id){
 				removeHead('e');
 				return 0;
 			}else{
@@ -51,9 +51,16 @@ int removeTrain(char b, int id){
 	}
 
 	struct Node *prev;
-	for (prev = temp, temp = temp->next ; temp)
-	
 
+	for (prev = temp, temp = temp->next ; temp->id != id ; prev = prev->next, temp = temp->next){
+		prev->next = temp->next;
+		temp->next = NULL;
+
+	}
+	printf("removeTrain - Removing id:%d | b:%c\n", temp->id, temp->b);
+
+	free(temp);
+	return 0;
 
 
 
@@ -94,8 +101,6 @@ int removeTrain(char b, int id){
 	// }
 
 	// // printf("Removed - TrainID:%d - bound:%c|pr:%d - St,counter:%d\n", temp->id, temp->b, temp->pr, x);
-	free(temp);
-	return 0;
 }
 
 
@@ -349,9 +354,10 @@ int removeHead(char b){
 int main (int argc, char *argv[]){
 	// high priority, same station
 	addNode(0, 1, 'E', (double)4);
+	int x = findMinLd('E');
+	removeTrain('E',)
 	addNode(1, 1, 'E', (double)7);
 	addNode(2, 1, 'E', (double)15);
-	findMinLd('E');
 
 
 	printStation('E');

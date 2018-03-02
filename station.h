@@ -11,7 +11,7 @@ typedef struct Node{
 }Node;
 
 extern int ste_ctr, stEA_ctr, stw_ctr, stWE_ctr;
-extern void hello(void);
+extern int getSecondID(char b);
 extern int getHeadID(char b);
 extern void addNode (int train_id, int train_pr, char train_b, double ld_time);
 extern int waitingLine(char b);

@@ -9,6 +9,7 @@
 #include <sys/time.h>
 #include <fcntl.h> 
 #include <unistd.h>
+#include <assert.h>
 
 #define BILLION 1000000000L
 #define TS_LEN 28
@@ -215,71 +216,112 @@ void *dispatcher(void* args){
 
 	usleep(3000000); //***************************************!!!!!!!!!! remove this sleep, used for testing
 
-	char last_b_disp = 'n';
+	int last_b_disp = 0; // 0 West, 1 East 
 	while (total_dispatched < train_ctr){
-		Train *opt_W_t, *opt_E_t, *to_disp_train;
+		Train *opt_first, *opt_second, *to_disp_train;
 		int to_disp_id;
 		while (train_on_track); //waiting for train to leave main track befores dispatches next train
 		// printf ("DISP - Train off main track, Anything ready?\n");
 		if (rdy_ctr > 0){
 			printf ("DISP - Train is waiting |rdy_ctr:%d | EA_ctr:%d | WE_ctr:%d | e_ctr:%d | w_ctr:%d\n",rdy_ctr, stEA_ctr, stWE_ctr,ste_ctr, stw_ctr);
 			if (stEA_ctr > 0 || stWE_ctr > 0){ // High train waiting 
-				printf ("DISP - Atleast one high waiting |stEA_ctr:%d | stWE_ctr:%d\n", stEA_ctr, stWE_ctr);
-				//More than 1 High waiting
-				if ((stEA_ctr >= 1 && stWE_ctr >= 1) || stEA_ctr >= 2 ||  stWE_ctr >= 2 ){ 
+				printf ("DISP - Atleast one high waiting | rdy_ctr:%d | ***EA_ctr:%d | ***WE_ctr:%d | e_ctr:%d | w_ctr:%d\n",rdy_ctr, stEA_ctr, stWE_ctr,ste_ctr, stw_ctr);
+				// More than 1 High waiting?
+				if ((stEA_ctr >= 1 && stWE_ctr >= 1) || stEA_ctr >= 2 || stWE_ctr >= 2 ){ 
 					printf ("DISP - More than one high waiting |stEA_ctr:%d | stWE_ctr:%d\n", stEA_ctr, stWE_ctr);
 
-					// 2+ High, same direction - dispatch head of non empty queue
-					if ((stEA_ctr > 1 && stWE_ctr == 0) || (stEA_ctr == 0 && stWE_ctr > 1)){
-						printf ("DISP - More than one high - Same direction |stEA_ctr:%d | stWE_ctr:%d\n", stEA_ctr, stWE_ctr);
-						if (stEA_ctr > 1){
-							to_disp_id = getHeadID('E'); 
-							for(to_disp_train = root ; to_disp_train->id != to_disp_id ; to_disp_train = to_disp_train->next);
+					// 2+ High, OPPOSITE direction - dispatch opposite direction from last dispatched
+					if (stEA_ctr >= 1 && stWE_ctr >= 1) {
+						printf ("DISP - >=2 high - Opposite direction |stEA_ctr:%d | stWE_ctr:%d\n", stEA_ctr, stWE_ctr);
+						if (last_b_disp){ // 0 West, 1 East 
+							to_disp_id = getHeadID('W'); 
 							// printf("DISP - to_disp_train | id:%d | b:%c | pr:%d\n", to_disp_train->id, to_disp_train->b, to_disp_train->pr);
 						} else{
-							to_disp_id = getHeadID('W'); 
-							for(to_disp_train = root ; to_disp_train->id != to_disp_id ; to_disp_train = to_disp_train->next);
+							to_disp_id = getHeadID('E'); 
 						}
 
-					// 2+ High, different direction
-					}else{
-						printf ("DISP - More than one high - Different direction |stEA_ctr:%d | stWE_ctr:%d\n", stEA_ctr, stWE_ctr);
-						int E = getHeadID('E'); 
-						int W = getHeadID('W'); 
-						for(opt_W_t = root ; opt_W_t->id != W ; opt_W_t = opt_W_t->next);
-						for(opt_E_t = root ; opt_E_t->id != E ; opt_E_t = opt_E_t->next);
+					// 2+ High, SAME direction
+					}else{	//this should be the code for traveling same direction same priority
+						printf ("DISP - >=2 high - Same direction |stEA_ctr:%d | stWE_ctr:%d\n", stEA_ctr, stWE_ctr);
+						int x, y;
+						if (stWE_ctr >0){
+							// assert(stEA_ctr == 0);
+							x = getHeadID('W');
+							y = getSecondID('W');
+
+						}else{
+							// assert(stWE_ctr == 0);
+							x = getHeadID('E');
+							y = getSecondID('W');
+
+						}
+
+						//Insert code for getmin time and remove by id
+
+
+
+
+						for(opt_first = root ; opt_first->id != x ; opt_first = opt_first->next);
+						for(opt_second = root ; opt_second->id != y ; opt_second = opt_second->next);
+						printf("opt_first id:%d | opt_second id:%d \n", opt_first->id, opt_second->id);
+						printStation('W');
+
+
 						// Dispatch by loading times
-						if (opt_W_t->ld_time < opt_E_t->ld_time){
-							printf ("DISP - Ld_time for W is lower | ***opt_W_t->ld_time:%f | opt_E_t->ld_time:%f\n", opt_W_t->ld_time, opt_E_t->ld_time);
-							to_disp_train = opt_W_t;
-						} else if (opt_W_t->ld_time > opt_E_t->ld_time){
-							printf ("DISP - Ld_time for E is lower |opt_W_t->ld_time:%f | ***opt_E_t->ld_time:%f\n", opt_W_t->ld_time, opt_E_t->ld_time);
-							to_disp_train = opt_E_t;
+						if (opt_first->ld_time < opt_second->ld_time){
+							printf ("DISP - Dispatching by Ld_time  | ***id:%d->ld_time:%f | id:%d->ld_time:%f\n", opt_first->id, opt_first->ld_time, opt_second->id, opt_second->ld_time);
+							to_disp_id = opt_first->id;
+						} else if (opt_first->ld_time > opt_second->ld_time){
+							printf ("DISP - Dispatching by Ld_time  | id:%d->ld_time:%f | ***id:%d->ld_time:%f\n", opt_first->id, opt_first->ld_time, opt_second->id, opt_second->ld_time);
+							to_disp_id = opt_second->id;
 						//Dispatch by (min)id
 						}else{ 	
-							printf ("DISP - Dispatching by lower id |opt_W_t->id:%d | opt_E_t->id:%d\n", opt_W_t->id, opt_E_t->id);
-							to_disp_train = (opt_W_t->id < opt_E_t->id) ? opt_W_t : opt_E_t;
+							printf ("DISP - Dispatching by lower id |opt_first->id:%d | opt_second->id:%d\n", opt_first->id, opt_second->id);
+							to_disp_train = (opt_first->id < opt_second->id) ? opt_first : opt_second;
 						}
 					}
-				// Single High pr train waiting
+				// Single High train waiting
 				}else{
 					printf("DISP - Single high train | rdy_ctr:%d |stEA_ctr:%d | stWE_ctr:%d\n", rdy_ctr, stEA_ctr, stWE_ctr);
 					if (stEA_ctr == 1){
 						to_disp_id = getHeadID('E'); 
-						for(to_disp_train = root ; to_disp_train->id != to_disp_id ; to_disp_train = to_disp_train->next);
 					} else{
 						to_disp_id = getHeadID('W'); 
-						for(to_disp_train = root ; to_disp_train->id != to_disp_id ; to_disp_train = to_disp_train->next);
 					}
 				}
 
 			// Low pr waiting (no high) waiting
 			}else { // Low train waiting
-				printf ("DISP - LOW pr waiting |ste_ctr:%d | stw_ctr:%d\n", ste_ctr, stw_ctr);
-
+				printf ("DISP - Atleast one low waiting | (Must be 0)EA_ctr:%d | (Must be 0)WE_ctr:%d | *e_ctr:%d | *w_ctr:%d\n", stEA_ctr, stWE_ctr,ste_ctr, stw_ctr);
+				// More than 1 Low waiting
+				if ((ste_ctr >= 1 && stw_ctr >= 1) || ste_ctr >= 2 || stw_ctr >= 2 ){ 
+					printf ("DISP - More than one low waiting |ste_ctr:%d | stw_ctr:%d\n", ste_ctr, stw_ctr);
+				// Single Low train waiting
+				}else{
+					printf("DISP - Single high train | rdy_ctr:%d |ste_ctr:%d | stw_ctr:%d\n", rdy_ctr, ste_ctr, stw_ctr);
+					if (ste_ctr == 1){
+						to_disp_id = getHeadID('e'); 
+					} else{
+						to_disp_id = getHeadID('w'); 
+					}
+				}				
+			}
+			for(to_disp_train = root ; to_disp_train->id != to_disp_id ; to_disp_train = to_disp_train->next);
+			// Simulation rule: if same priority, opposite directions, 
+			// pick train which will travel in the opposite dir from last dispatched
+			switch (to_disp_train->b){
+				case 'W':
+				case 'w':
+					last_b_disp = 0;
+					break;
+				case 'E':
+				case 'e':
+					last_b_disp = 1;
+					break;
 
 			}
 
+			printf("DISP - new last_b_disp:%d | b:%c | \n", last_b_disp, (last_b_disp == 0) ? 'W' : 'E' );
 			printf("DISP - DISPATCHING | id:%d | b:%c | pr:%d\n\n", to_disp_train->id, to_disp_train->b, to_disp_train->pr);
 
 			//Signal Granted train to dispatch
@@ -287,6 +329,7 @@ void *dispatcher(void* args){
 			to_disp_train->s = 2; // Granted
 			pthread_cond_broadcast(&green_light_cv);
 			pthread_mutex_unlock(&main_track_mutex);
+
 			//Removing train from station
 			pthread_mutex_lock(&queue_mutex);
 			rdy_ctr--;
@@ -296,24 +339,25 @@ void *dispatcher(void* args){
 			while (to_disp_train->s != 4);
 
 
+
 		}
 		total_dispatched++;
 		// total_dispatched = train_ctr; //**************************change this to total_dispatched++
 	}	
 
 
-	// // Get candidate trains  op1 and opt2
+	// // Get candidate trains  op1 and opt_second
 	// int diff_direction = 0;
 	// if (stEA_ctr >= 1){ 
 	// 	int opt_E_id = getHeadID('E'); 
-	// 	for(opt1 = root ; opt1->id != opt_E_id ; opt1 = opt1->next);
-	// 	printf("DISP - Option 1 to disp | id:%d | b:%c | pr:%d\n", opt1->id, opt1->b, opt1->pr);
+	// 	for(opt_first = root ; opt_first->id != opt_E_id ; opt_first = opt_first->next);
+	// 	printf("DISP - Option 1 to disp | id:%d | b:%c | pr:%d\n", opt_first->id, opt_first->b, opt_first->pr);
 	// 	diff_direction++;
 	// }
 	// if (stEA_ctr >= 1){ 
 	// 	int opt_W_id = getHeadID('W'); 
-	// 	for(opt2 = root ; opt2->id != opt_W_id ; opt2 = opt2->next);
-	// 	printf("DISP - Option 2 to disp | id:%d | b:%c | pr:%d\n", opt2->id, opt2->b, opt2->pr);
+	// 	for(opt_second = root ; opt_second->id != opt_W_id ; opt_second = opt_second->next);
+	// 	printf("DISP - Option 2 to disp | id:%d | b:%c | pr:%d\n", opt_second->id, opt_second->b, opt_second->pr);
 	// 	diff_direction++;
 
 
@@ -426,11 +470,11 @@ void *dispatcher(void* args){
 			fprintf(stderr, "ERROR - Cannot join thread TRAIN tid:%d\n", x);
 		}
 	}
-	printf("\n");
-	printStation('E');
-	printStation('W');
-	printStation('e');
-	printStation('w');
+	// printf("\n");
+	// printStation('E');
+	// printStation('W');
+	// printStation('e');
+	// printStation('w');
 
 
 

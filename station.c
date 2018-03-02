@@ -7,10 +7,142 @@
 
 int ste_ctr = 0, stEA_ctr = 0, stw_ctr = 0, stWE_ctr = 0;
 struct Node *root_w = NULL, *root_WE = NULL, *root_e = NULL, *root_EA = NULL, *temp = NULL;
-	
-void hello(void){
-	printf("hello from station\n");
 
+int removeTrain(char b, int id){
+	assert(b == 'e' || b == 'w' || b == 'E' || b =='W');
+	// int x = 0;
+	switch (b){
+		case 'e':
+			if (ste_ctr == 1){
+				removeHead('e');
+				return 0;
+			}else{
+				temp = root_e;
+				ste_ctr--;		
+			}
+			break;
+		case 'w':
+			if (stw_ctr == 1){
+				removeHead('e');
+				return 0;
+			}else{
+				temp = root_w;
+				stw_ctr--;		
+			}
+			break;
+		case 'E':
+			if (stEA_ctr == 1){
+				removeHead('e');
+				return 0;
+			}else{
+				temp = root_EA;
+				stEA_ctr--;		
+			}
+			break;
+		case 'W':
+			if (stWE_ctr == 1){
+				removeHead('e');
+				return 0;
+			}else{
+				temp = root_WE;
+				stWE_ctr--;		
+			}
+			break;
+	}
+
+	struct Node *prev;
+	for (prev = temp, temp = temp->next ; temp)
+	
+	// if (b == 'e') {
+	// 	if (root_e == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b);}
+	// 	temp = root_e;
+	// 	root_e = temp->next;
+	// 	ste_ctr--;
+	// 	// x = ste_ctr;
+
+	// }
+	// else if (b == 'w'){
+	// 	if (root_w == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b); return 1;}
+	// 	temp = root_w;
+	// 	root_w = temp->next;
+	// 	stw_ctr--;
+	// 	// x = stw_ctr;
+	// }
+	// else if (b == 'E'){
+	// 	if (root_EA == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b); return 1;}
+	// 	temp = root_EA;
+	// 	root_EA = temp->next;
+	// 	stEA_ctr--;
+	// 	// x = stEA_ctr;
+	// }
+	// else if (b == 'W'){
+	// 	if (root_WE == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b); return 1;}
+	// 	temp = root_WE;
+	// 	root_WE = temp->next;
+	// 	stWE_ctr--;
+	// 	// x = stWE_ctr;
+	// }
+
+	// // printf("Removed - TrainID:%d - bound:%c|pr:%d - St,counter:%d\n", temp->id, temp->b, temp->pr, x);
+	free(temp);
+	return 0;
+}
+
+
+
+int findMinLd(char b){
+	assert(b == 'e' || b == 'w' || b == 'E' || b =='W');
+	int min_id = -1;
+	double min_ld_time = (double)99;
+	switch (b){
+		case 'e':
+			assert(root_e != NULL);
+			temp = root_e;
+			break;
+		case 'w':
+			assert(root_w != NULL);
+			temp = root_w;
+			break;
+		case 'E':
+			assert(root_EA != NULL);
+			temp = root_EA;
+			break;
+		case 'W':
+			assert(root_WE != NULL);
+			temp = root_WE;
+			break;
+	}
+	for ( ; temp != NULL ; temp = temp->next){
+		if (temp->ld_time < min_ld_time){
+			min_id = temp->id;
+			min_ld_time = temp->ld_time;
+		}
+	}
+
+	printf("findMinLd - Returning id:%d\n", min_id);
+	return min_id;
+}
+
+
+
+	
+int getSecondID(char b){
+	assert(b == 'e' || b == 'w' || b == 'E' || b =='W');
+	switch (b){
+		case 'e':
+			assert(root_e != NULL);
+			return root_e->next->id;
+		case 'w':
+			assert(root_w != NULL);
+			return root_w->next->id;
+		case 'E':
+			assert(root_EA != NULL);
+			return root_EA->next->id;
+		case 'W':
+			assert(root_WE != NULL);
+			return root_WE->next->id;
+	}
+	return 0;
 }
 int getHeadID(char b){
 	assert(b == 'e' || b == 'w' || b == 'E' || b =='W');
@@ -158,7 +290,7 @@ int printStation(char b){
 
 	printf("Number of trains waiting:%d\n", x);
 	for ( ; temp != NULL ; temp = temp->next){
-		printf("TrainID:%d - bound:%c|pr:%d \n", temp->id, temp->b, temp->pr);
+		printf("TrainID:%d - bound:%c|pr:%d |ld:%f\n", temp->id, temp->b, temp->pr, temp->ld_time);
 	}
 	printf("*********************************************\n");
 	return 0;
@@ -168,7 +300,7 @@ int removeHead(char b){
 	// int x = 0;
 	
 	if (b == 'e') {
-		if (root_e == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b);}
+		if (root_e == NULL){fprintf(stderr, "Error - Empty station '%c'\n", b);}
 		temp = root_e;
 		root_e = temp->next;
 		ste_ctr--;
@@ -176,21 +308,21 @@ int removeHead(char b){
 
 	}
 	else if (b == 'w'){
-		if (root_w == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b); return 1;}
+		if (root_w == NULL){fprintf(stderr, "Error - Empty station '%c'\n", b); return 1;}
 		temp = root_w;
 		root_w = temp->next;
 		stw_ctr--;
 		// x = stw_ctr;
 	}
 	else if (b == 'E'){
-		if (root_EA == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b); return 1;}
+		if (root_EA == NULL){fprintf(stderr, "Error - Empty station '%c'\n", b); return 1;}
 		temp = root_EA;
 		root_EA = temp->next;
 		stEA_ctr--;
 		// x = stEA_ctr;
 	}
 	else if (b == 'W'){
-		if (root_WE == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b); return 1;}
+		if (root_WE == NULL){fprintf(stderr, "Error - Empty station '%c'\n", b); return 1;}
 		temp = root_WE;
 		root_WE = temp->next;
 		stWE_ctr--;
@@ -204,15 +336,15 @@ int removeHead(char b){
 
 }
 
-// int main (int argc, char *argv[]){
-	// // high priority, same station
-	// addNode(0, 1, 'e');
-	// addNode(1, 1, 'e');
-	// addNode(2, 1, 'e');
-	// addNode(3, 1, 'e');
-	// addNode(4, 1, 'e');
-	// addNode(5, 1, 'e');
-	// printStation('e');
+int main (int argc, char *argv[]){
+	// high priority, same station
+	addNode(0, 1, 'E', (double)4);
+	addNode(1, 1, 'E', (double)7);
+	addNode(2, 1, 'E', (double)15);
+	findMinLd('E');
+
+
+	printStation('E');
 	
 	// // high priority, same station
 	// addNode(0, 1, 'w');
@@ -231,26 +363,26 @@ int removeHead(char b){
 	// printStation('w');
 
 	// Remove head
-// 	addNode(0, 1, 'w');
-// 	addNode(1, 1, 'W');
-// 	removeHead('w');
-// 	addNode(2, 1, 'w');
-// 	addNode(3, 1, 'e');
-// 	addNode(4, 1, 'e');
-// 	addNode(5, 1, 'E');
-// 	addNode(6, 1, 'E');
+	// addNode(0, 1, 'w');
+	// addNode(1, 1, 'W');
+	// removeHead('w');
+	// addNode(2, 1, 'w');
+	// addNode(3, 1, 'e');
+	// addNode(4, 1, 'e');
+	// addNode(5, 1, 'E');
+	// addNode(6, 1, 'E');
 
-// 	removeHead('E');
-// 	removeHead('E');
-// 	printf("Waiting in line e:%d\n", waitingLine(0));
-// 	printf("Waiting in line w:%d\n", waitingLine(1));
-// 	printf("Waiting in line EA:%d\n", waitingLine(2));
-// 	printf("Waiting in line WE:%d\n", waitingLine(3));
-// 	printStation('w');
-// 	printStation('W');
-// 	printStation('e');
-// 	printStation('E');
+	// removeHead('E');
+	// removeHead('E');
+	// printf("Waiting in line e:%d\n", waitingLine(0));
+	// printf("Waiting in line w:%d\n", waitingLine(1));
+	// printf("Waiting in line EA:%d\n", waitingLine(2));
+	// printf("Waiting in line WE:%d\n", waitingLine(3));
+	// printStation('w');
+	// printStation('W');
+	// printStation('e');
+	// printStation('E');
 
 
-// }
+}
 

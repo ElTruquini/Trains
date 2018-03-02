@@ -53,6 +53,16 @@ int removeTrain(char b, int id){
 	struct Node *prev;
 	for (prev = temp, temp = temp->next ; temp)
 	
+
+
+
+
+
+
+
+
+
+	
 	// if (b == 'e') {
 	// 	if (root_e == NULL){fprintf( stderr, "Error - Empty station '%c'\n", b);}
 	// 	temp = root_e;

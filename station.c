@@ -52,7 +52,6 @@ int removeTrain(char b, int id){
 	struct Node *prev;
 
 	for (prev = temp, temp = temp->next ; temp->id != id ; prev = prev->next, temp = temp->next);
-	// printf("Loop prev | id:%d | ld:%f - temp id:%d | ld:%f\n", prev->id, prev->ld_time, temp->id, temp->ld_time); 
 	prev->next = temp->next;
 	temp->next = NULL;
 	// printf("removeTrain | id:%d | b:%c | ld:%f \n", temp->id, temp->b, temp->ld_time);
@@ -84,9 +83,7 @@ int findMinLd(char b){
 			break;
 	}
 	for ( ; temp != NULL ; temp = temp->next){
-		// printf("findminld Loop temp->ld_time:%f ? min_ld_time:%f\n", temp->ld_time, min_ld_time);
 		if (temp->ld_time < min_ld_time){
-			// printf("findMinLd - Updated min with id:%d, ld:%f\n", temp->id, temp->ld_time);
 			min_id = temp->id;
 			min_ld_time = temp->ld_time;
 		}
@@ -96,9 +93,6 @@ int findMinLd(char b){
 	return min_id;
 }
 
-
-
-	
 int getSecondID(char b){
 	assert(b == 'e' || b == 'w' || b == 'E' || b =='W');
 	switch (b){
@@ -168,7 +162,6 @@ void addNode (int train_id, int train_pr, char train_b, double train_ld_time){
 	new_node->pr = train_pr;
 	new_node->b = train_b;
 	new_node->ld_time = train_ld_time;
-
 	// printf("addNode - TrainID:%d - bound:%c|pr:%d \n", train_id, train_b, train_pr);
 
 	//Station has waiting trains
@@ -209,10 +202,7 @@ void addNode (int train_id, int train_pr, char train_b, double train_ld_time){
 
 	if(flag){
 		for ( ; temp->next != NULL ; temp = temp->next){
-			// printf("Traversing station train:%d - bound:%c|pr:%d \n", temp->id, temp->b, temp->pr);
 		}
-		// printf("Traversing station train:%d - bound:%c|pr:%d \n", temp->id, temp->b, temp->pr);
-
 		temp->next = new_node;
 		new_node->next = NULL;
 	}
@@ -270,36 +260,30 @@ int printStation(char b){
 }
 int removeHead(char b){
 	assert(b == 'e' || b == 'w' || b == 'E' || b =='W');
-	// int x = 0;
 	
 	if (b == 'e') {
 		if (root_e == NULL){fprintf(stderr, "Error - Empty station '%c'\n", b);}
 		temp = root_e;
 		root_e = temp->next;
 		ste_ctr--;
-		// x = ste_ctr;
-
 	}
 	else if (b == 'w'){
 		if (root_w == NULL){fprintf(stderr, "Error - Empty station '%c'\n", b); return 1;}
 		temp = root_w;
 		root_w = temp->next;
 		stw_ctr--;
-		// x = stw_ctr;
 	}
 	else if (b == 'E'){
 		if (root_EA == NULL){fprintf(stderr, "Error - Empty station '%c'\n", b); return 1;}
 		temp = root_EA;
 		root_EA = temp->next;
 		stEA_ctr--;
-		// x = stEA_ctr;
 	}
 	else if (b == 'W'){
 		if (root_WE == NULL){fprintf(stderr, "Error - Empty station '%c'\n", b); return 1;}
 		temp = root_WE;
 		root_WE = temp->next;
 		stWE_ctr--;
-		// x = stWE_ctr;
 	}
 
 	// printf("Removed - TrainID:%d - bound:%c|pr:%d - St,counter:%d\n", temp->id, temp->b, temp->pr, x);
@@ -308,57 +292,4 @@ int removeHead(char b){
 
 
 }
-
-// int main (int argc, char *argv[]){
-// 	// high priority, same station
-// 	addNode(1, 1, 'w', (double)2);
-// 	addNode(0, 1, 'w', (double)4);
-// 	addNode(2, 1, 'w', (double)15);
-// 	addNode(4, 1, 'w', (double)3);
-// 	addNode(7, 1, 'w', (double)3);
-// 	printStation('w');
-
-// 	int x = findMinLd('w');
-// 	removeTrain('w', x);
-// 	printStation('w');
-	
-// 	// // high priority, same station
-// 	// addNode(0, 1, 'w');
-// 	// addNode(1, 1, 'w');
-// 	// addNode(2, 1, 'w');
-// 	// addNode(3, 1, 'w');
-// 	// addNode(4, 1, 'w');
-// 	// addNode(7, 1, 'w');
-// 	// printStation('w');
-
-// 	// Remove head
-// 	// addNode(0, 1, 'w');
-// 	// addNode(1, 1, 'w');
-// 	// removeHead('w');
-// 	// addNode(2, 1, 'w');
-// 	// printStation('w');
-
-// 	// Remove head
-// 	// addNode(0, 1, 'w');
-// 	// addNode(1, 1, 'W');
-// 	// removeHead('w');
-// 	// addNode(2, 1, 'w');
-// 	// addNode(3, 1, 'e');
-// 	// addNode(4, 1, 'e');
-// 	// addNode(5, 1, 'E');
-// 	// addNode(6, 1, 'E');
-
-// 	// removeHead('E');
-// 	// removeHead('E');
-// 	// printf("Waiting in line e:%d\n", waitingLine(0));
-// 	// printf("Waiting in line w:%d\n", waitingLine(1));
-// 	// printf("Waiting in line EA:%d\n", waitingLine(2));
-// 	// printf("Waiting in line WE:%d\n", waitingLine(3));
-// 	// printStation('w');
-// 	// printStation('W');
-// 	// printStation('e');
-// 	// printStation('E');
-
-
-// }
 

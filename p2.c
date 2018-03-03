@@ -262,6 +262,9 @@ void *dispatcher(void* args){
 			fprintf(stderr, "ERROR - Cannot join thread TRAIN tid:%d\n", x);
 		}
 	}
+
+	pthread_attr_destroy(&attr);
+
 	return NULL;
 }
 
@@ -328,17 +331,16 @@ int main (int argc, char *argv[]){
 
 
 
-	//TODO: NEED TO FREE ALL MALLOC FROM ADD TRAIN
-	//TODO: DESTROY MUTEXES 
 
-	/*
-	  pthread_attr_destroy(&attr);
-   pthread_mutex_destroy(&count_mutex);
-   pthread_cond_destroy(&count_threshold_cv);
-   pthread_exit(NULL);
-   */
+	pthread_cond_destroy(&green_light_cv);
+	pthread_mutex_destroy(&queue_mutex);
+	pthread_mutex_destroy(&main_track_mutex);
 
-
+	for (temp = root ; temp != NULL ; temp = temp->next){
+		free(temp);
+	}
+	
 	fclose(fp);
+
 	return EXIT_SUCCESS;
 }

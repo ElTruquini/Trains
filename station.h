@@ -11,6 +11,9 @@ typedef struct Node{
 }Node;
 
 extern int ste_ctr, stEA_ctr, stw_ctr, stWE_ctr;
+
+extern int findMinLd(char b);
+extern int removeTrain(char b, int id);
 extern int getSecondID(char b);
 extern int getHeadID(char b);
 extern void addNode (int train_id, int train_pr, char train_b, double ld_time);
